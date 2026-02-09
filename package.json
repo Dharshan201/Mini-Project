@@ -1,0 +1,21 @@
+{
+    "name": "securepay-gateway",
+    "version": "1.0.0",
+    "description": "SecurePay Gateway - MERN Stack Credit Card Processing Simulation",
+    "scripts": {
+        "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+        "dev:backend": "cd backend && npm run dev",
+        "dev:frontend": "cd frontend && npm run dev",
+        "seed": "cd backend && npm run seed"
+    },
+    "keywords": [
+        "mern",
+        "payment-gateway",
+        "credit-card",
+        "react",
+        "express",
+        "mongodb"
+    ],
+    "author": "DHARSHAN",
+    "license": "MIT"
+}
