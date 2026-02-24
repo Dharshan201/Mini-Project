@@ -33,7 +33,7 @@ const Login = () => {
 
     // Redirect if already logged in
     if (user) {
-        navigate('/dashboard');
+        navigate(user.role === 'admin' ? '/admin' : '/dashboard');
         return null;
     }
 
@@ -50,7 +50,9 @@ const Login = () => {
         const result = await login(formData.email, formData.password);
 
         if (result.success) {
-            navigate('/dashboard');
+            // Check the user data stored in localStorage to determine role
+            const userData = JSON.parse(localStorage.getItem('user'));
+            navigate(userData?.role === 'admin' ? '/admin' : '/dashboard');
         } else {
             setError(result.message);
         }

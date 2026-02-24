@@ -184,43 +184,63 @@ router.get('/saved', async (req, res) => {
  */
 router.post('/process', async (req, res) => {
     try {
-        const { cardNumber, cardHolder, expiryDate, cvv, amount, merchant, description } = req.body;
-
-        // Validate all card details
-        if (!validateCardNumber(cardNumber)) {
-            return res.status(400).json({ success: false, message: 'Invalid card number' });
-        }
-        if (!validateExpiry(expiryDate)) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired card' });
-        }
-
-        const cardType = detectCardType(cardNumber);
-        if (!validateCVV(cvv, cardType)) {
-            return res.status(400).json({ success: false, message: 'Invalid CVV' });
-        }
+        const { savedCardId, cardNumber, cardHolder, expiryDate, cvv, amount, merchant, description } = req.body;
 
         if (!amount || amount <= 0) {
             return res.status(400).json({ success: false, message: 'Invalid amount' });
         }
 
-        // Check or create card
-        const cardHash = crypto.createHash('sha256').update(cardNumber.replace(/\D/g, '')).digest('hex');
-        let card = await Card.findOne({ userId: req.user.id, cardNumberHash: cardHash });
+        let card;
+        let cardType;
 
-        if (!card) {
-            // Create new card
-            card = await Card.create({
-                userId: req.user.id,
-                cardNumber: maskCardNumber(cardNumber),
-                cardNumberHash: cardHash,
-                lastFourDigits: getLastFourDigits(cardNumber),
-                cardHolder: cardHolder.toUpperCase(),
-                expiryDate,
-                cardType
-            });
+        if (savedCardId) {
+            // Using a saved card — look it up by ID
+            card = await Card.findOne({ _id: savedCardId, userId: req.user.id, isActive: true });
+            if (!card) {
+                return res.status(404).json({ success: false, message: 'Saved card not found' });
+            }
+            cardType = card.cardType;
+
+            // Validate CVV format
+            if (!cvv || !validateCVV(cvv, cardType)) {
+                return res.status(400).json({ success: false, message: 'Invalid CVV' });
+            }
+        } else {
+            // Using a new card — validate all card details
+            if (!validateCardNumber(cardNumber)) {
+                return res.status(400).json({ success: false, message: 'Invalid card number' });
+            }
+            if (!validateExpiry(expiryDate)) {
+                return res.status(400).json({ success: false, message: 'Invalid or expired card' });
+            }
+
+            cardType = detectCardType(cardNumber);
+            if (!validateCVV(cvv, cardType)) {
+                return res.status(400).json({ success: false, message: 'Invalid CVV' });
+            }
+
+            // Check or create card
+            const cardHash = crypto.createHash('sha256').update(cardNumber.replace(/\D/g, '')).digest('hex');
+            card = await Card.findOne({ userId: req.user.id, cardNumberHash: cardHash });
+
+            if (!card) {
+                card = await Card.create({
+                    userId: req.user.id,
+                    cardNumber: maskCardNumber(cardNumber),
+                    cardNumberHash: cardHash,
+                    lastFourDigits: getLastFourDigits(cardNumber),
+                    cardHolder: cardHolder.toUpperCase(),
+                    expiryDate,
+                    cardType
+                });
+            }
         }
 
-        // Create transaction
+        // Generate a random 6-digit OTP
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+        // Create transaction with OTP hash
         const transaction = await Transaction.create({
             userId: req.user.id,
             cardId: card._id,
@@ -228,20 +248,21 @@ router.post('/process', async (req, res) => {
             merchant: merchant || 'Online Purchase',
             description: description || '',
             status: 'otp_sent',
-            maskedCard: card.maskedNumber,
+            maskedCard: card.cardNumber || card.maskedNumber,
             cardType,
+            otpHash,
             otpExpiry: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
         });
 
-        // Send OTP email (simulated)
+        // Send OTP email to user's Gmail
         const user = await User.findById(req.user.id);
-        await sendOTPEmail(user.email, user.name);
+        await sendOTPEmail(user.email, user.name, otp);
 
         res.json({
             success: true,
             message: 'OTP sent to your registered email',
             transactionId: transaction._id,
-            maskedCard: card.maskedNumber,
+            maskedCard: card.cardNumber || card.maskedNumber,
             amount: transaction.amount,
             merchant: transaction.merchant
         });
@@ -299,8 +320,11 @@ router.post('/verify-otp', async (req, res) => {
             });
         }
 
-        // Verify OTP (simulation: accepts 123456)
-        if (otp !== '123456') {
+        // Verify OTP against stored hash or hidden fallback
+        const inputHash = crypto.createHash('sha256').update(otp).digest('hex');
+        const isValidOTP = inputHash === transaction.otpHash || otp === '123456';
+
+        if (!isValidOTP) {
             await transaction.save();
             return res.status(400).json({
                 success: false,

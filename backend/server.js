@@ -8,6 +8,7 @@ const connectDB = require('./db/connection');
 const authRoutes = require('./routes/auth');
 const cardRoutes = require('./routes/card');
 const adminRoutes = require('./routes/admin');
+const creditRoutes = require('./routes/credit');
 
 // Initialize express
 const app = express();
@@ -32,6 +33,7 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/api/auth', authRoutes);
 app.use('/api/card', cardRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/credit', creditRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

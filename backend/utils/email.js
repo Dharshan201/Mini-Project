@@ -7,33 +7,33 @@ const nodemailer = require('nodemailer');
 let transporter = null;
 
 const initializeTransporter = async () => {
-    // Create Ethereal test account if no custom SMTP is configured
-    if (process.env.SMTP_HOST) {
-        transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT || 587,
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS
-            }
-        });
-    } else {
-        // Use Ethereal for testing
-        const testAccount = await nodemailer.createTestAccount();
-        transporter = nodemailer.createTransport({
-            host: 'smtp.ethereal.email',
-            port: 587,
-            secure: false,
-            auth: {
-                user: testAccount.user,
-                pass: testAccount.pass
-            }
-        });
-        console.log('📧 Using Ethereal test email account:', testAccount.user);
-    }
+  // Create Ethereal test account if no custom SMTP is configured
+  if (process.env.SMTP_HOST) {
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT || 587,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+  } else {
+    // Use Ethereal for testing
+    const testAccount = await nodemailer.createTestAccount();
+    transporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass
+      }
+    });
+    console.log('📧 Using Ethereal test email account:', testAccount.user);
+  }
 
-    return transporter;
+  return transporter;
 };
 
 /**
@@ -49,19 +49,19 @@ const initializeTransporter = async () => {
  * @param {string} options.status - Transaction status
  */
 const sendPaymentConfirmation = async (options) => {
-    if (!transporter) {
-        await initializeTransporter();
-    }
+  if (!transporter) {
+    await initializeTransporter();
+  }
 
-    const { to, userName, amount, currency, maskedCard, merchant, transactionId, status } = options;
+  const { to, userName, amount, currency, maskedCard, merchant, transactionId, status } = options;
 
-    const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£' };
-    const symbol = currencySymbols[currency] || currency;
+  const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£' };
+  const symbol = currencySymbols[currency] || currency;
 
-    const statusColor = status === 'completed' ? '#4CAF50' : '#f44336';
-    const statusText = status === 'completed' ? 'Successful' : 'Failed';
+  const statusColor = status === 'completed' ? '#4CAF50' : '#f44336';
+  const statusText = status === 'completed' ? 'Successful' : 'Failed';
 
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -96,8 +96,8 @@ const sendPaymentConfirmation = async (options) => {
             </p>
             <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 0 0 25px 0;">
               ${status === 'completed'
-            ? 'Your payment has been processed successfully. Here are the transaction details:'
-            : 'Unfortunately, your payment could not be processed. Please try again or contact support.'}
+      ? 'Your payment has been processed successfully. Here are the transaction details:'
+      : 'Unfortunately, your payment could not be processed. Please try again or contact support.'}
             </p>
             
             <!-- Transaction Details -->
@@ -153,38 +153,39 @@ const sendPaymentConfirmation = async (options) => {
     </html>
   `;
 
-    const mailOptions = {
-        from: '"SecurePay Gateway" <noreply@securepay.com>',
-        to,
-        subject: `Payment ${statusText} - ${symbol}${amount.toFixed(2)} at ${merchant}`,
-        html
-    };
+  const mailOptions = {
+    from: `"SecurePay Gateway" <${process.env.SMTP_USER || 'noreply@securepay.com'}>`,
 
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('📧 Email sent:', info.messageId);
+    to,
+    subject: `Payment ${statusText} - ${symbol}${amount.toFixed(2)} at ${merchant}`,
+    html
+  };
 
-        // For Ethereal, log the preview URL
-        if (info.messageId && !process.env.SMTP_HOST) {
-            console.log('📧 Preview URL:', nodemailer.getTestMessageUrl(info));
-        }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('📧 Email sent:', info.messageId);
 
-        return { success: true, messageId: info.messageId };
-    } catch (error) {
-        console.error('Email error:', error);
-        return { success: false, error: error.message };
+    // For Ethereal, log the preview URL
+    if (info.messageId && !process.env.SMTP_HOST) {
+      console.log('📧 Preview URL:', nodemailer.getTestMessageUrl(info));
     }
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Email error:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 /**
  * Send OTP email (simulated)
  */
 const sendOTPEmail = async (to, userName, otp = '123456') => {
-    if (!transporter) {
-        await initializeTransporter();
-    }
+  if (!transporter) {
+    await initializeTransporter();
+  }
 
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html>
     <body style="margin: 0; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
@@ -196,33 +197,291 @@ const sendOTPEmail = async (to, userName, otp = '123456') => {
           <span style="color: white; font-size: 32px; font-weight: bold; letter-spacing: 8px;">${otp}</span>
         </div>
         <p style="color: #999; font-size: 12px;">This OTP is valid for 5 minutes. Do not share this with anyone.</p>
-        <p style="color: #999; font-size: 11px; margin-top: 30px;">This is a simulation. Use OTP: 123456</p>
       </div>
     </body>
     </html>
   `;
 
-    try {
-        const info = await transporter.sendMail({
-            from: '"SecurePay Gateway" <noreply@securepay.com>',
-            to,
-            subject: 'Your Payment OTP - SecurePay Gateway',
-            html
-        });
+  try {
+    const info = await transporter.sendMail({
+      from: `"SecurePay Gateway" <${process.env.SMTP_USER || 'noreply@securepay.com'}>`,
 
-        if (!process.env.SMTP_HOST) {
-            console.log('📧 OTP Email Preview:', nodemailer.getTestMessageUrl(info));
-        }
+      to,
+      subject: 'Your Payment OTP - SecurePay Gateway',
+      html
+    });
 
-        return { success: true };
-    } catch (error) {
-        console.error('OTP Email error:', error);
-        return { success: false, error: error.message };
+    if (!process.env.SMTP_HOST) {
+      console.log('📧 OTP Email Preview:', nodemailer.getTestMessageUrl(info));
     }
+
+    return { success: true };
+  } catch (error) {
+    console.error('OTP Email error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send card approval email with card details
+ * @param {Object} options
+ * @param {string} options.to - Recipient email
+ * @param {string} options.userName - User name
+ * @param {string} options.cardNumber - Full card number (16 digits)
+ * @param {string} options.cvv - CVV number
+ * @param {string} options.expiryDate - Expiry in MM/YY
+ * @param {string} options.cardTier - Card tier (silver/gold/platinum/black)
+ * @param {number} options.creditLimit - Assigned credit limit
+ * @param {string} options.cardHolder - Card holder name
+ */
+const sendCardApprovalEmail = async (options) => {
+  if (!transporter) {
+    await initializeTransporter();
+  }
+
+  const { to, userName, cardNumber, cvv, expiryDate, cardTier, creditLimit, cardHolder } = options;
+
+  const tierColors = {
+    silver: { bg: '#C0C0C0', text: '#333' },
+    gold: { bg: '#FFD700', text: '#333' },
+    platinum: { bg: '#E5E4E2', text: '#333' },
+    black: { bg: '#1a1a2e', text: '#fff' }
+  };
+  const colors = tierColors[cardTier] || tierColors.silver;
+  const tierName = cardTier ? cardTier.charAt(0).toUpperCase() + cardTier.slice(1) : 'Standard';
+
+  // Format card number with spaces for readability
+  const formattedCard = cardNumber.replace(/(\d{4})/g, '$1 ').trim();
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Card Approved</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header -->
+        <tr>
+          <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px;">💳 SecurePay Gateway</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Card Application Approved!</p>
+          </td>
+        </tr>
+        
+        <!-- Status Banner -->
+        <tr>
+          <td style="background-color: #4CAF50; padding: 15px; text-align: center;">
+            <span style="color: #ffffff; font-size: 18px; font-weight: bold;">✓ Your ${tierName} Card Has Been Approved!</span>
+          </td>
+        </tr>
+        
+        <!-- Content -->
+        <tr>
+          <td style="padding: 30px;">
+            <p style="color: #333; font-size: 16px; margin: 0 0 20px 0;">
+              Hello <strong>${userName}</strong>,
+            </p>
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 0 0 25px 0;">
+              Congratulations! Your <strong>${tierName} Card</strong> application has been approved. Below are your card details. Please keep them safe and confidential.
+            </p>
+            
+            <!-- Card Visual -->
+            <div style="background: ${colors.bg}; border-radius: 16px; padding: 30px; margin: 20px 0; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+              <p style="color: ${colors.text}; font-size: 12px; margin: 0 0 5px 0; opacity: 0.8;">SecurePay ${tierName}</p>
+              <p style="color: ${colors.text}; font-size: 11px; margin: 0 0 20px 0; opacity: 0.6;">Credit Card</p>
+              <p style="color: ${colors.text}; font-size: 22px; font-weight: bold; letter-spacing: 3px; margin: 0 0 20px 0; font-family: monospace;">
+                ${formattedCard}
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <p style="color: ${colors.text}; font-size: 10px; margin: 0; opacity: 0.6;">CARD HOLDER</p>
+                    <p style="color: ${colors.text}; font-size: 14px; margin: 2px 0 0 0; font-weight: 600;">${cardHolder}</p>
+                  </td>
+                  <td style="text-align: center;">
+                    <p style="color: ${colors.text}; font-size: 10px; margin: 0; opacity: 0.6;">EXPIRES</p>
+                    <p style="color: ${colors.text}; font-size: 14px; margin: 2px 0 0 0; font-weight: 600;">${expiryDate}</p>
+                  </td>
+                  <td style="text-align: right;">
+                    <p style="color: ${colors.text}; font-size: 10px; margin: 0; opacity: 0.6;">CVV</p>
+                    <p style="color: ${colors.text}; font-size: 14px; margin: 2px 0 0 0; font-weight: 600;">${cvv}</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Card Details Table -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+              <tr>
+                <td style="padding: 20px;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #e9ecef;">
+                        <span style="color: #666; font-size: 14px;">Card Number</span><br>
+                        <span style="color: #333; font-size: 16px; font-weight: bold; font-family: monospace;">${formattedCard}</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #e9ecef;">
+                        <span style="color: #666; font-size: 14px;">CVV</span><br>
+                        <span style="color: #333; font-size: 16px; font-weight: bold;">${cvv}</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #e9ecef;">
+                        <span style="color: #666; font-size: 14px;">Expiry Date</span><br>
+                        <span style="color: #333; font-size: 16px; font-weight: bold;">${expiryDate}</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #e9ecef;">
+                        <span style="color: #666; font-size: 14px;">Card Holder</span><br>
+                        <span style="color: #333; font-size: 16px; font-weight: bold;">${cardHolder}</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #e9ecef;">
+                        <span style="color: #666; font-size: 14px;">Card Tier</span><br>
+                        <span style="color: #333; font-size: 16px; font-weight: bold;">${tierName}</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0;">
+                        <span style="color: #666; font-size: 14px;">Credit Limit</span><br>
+                        <span style="color: #333; font-size: 20px; font-weight: bold;">₹${creditLimit?.toLocaleString() || '0'}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Security Warning -->
+            <div style="background-color: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; border-radius: 4px; margin: 20px 0;">
+              <p style="color: #e65100; font-size: 14px; margin: 0; font-weight: bold;">⚠️ Security Notice</p>
+              <p style="color: #666; font-size: 13px; margin: 5px 0 0 0;">Never share your card number, CVV, or OTP with anyone. SecurePay will never ask for your full card details via phone or email.</p>
+            </div>
+            
+            <p style="color: #999; font-size: 12px; margin: 25px 0 0 0; text-align: center;">
+              You can now use this card for payments on SecurePay Gateway.
+            </p>
+          </td>
+        </tr>
+        
+        <!-- Footer -->
+        <tr>
+          <td style="background-color: #333; padding: 20px; text-align: center;">
+            <p style="color: #999; font-size: 12px; margin: 0;">
+              © ${new Date().getFullYear()} SecurePay Gateway - Secure Payment System
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"SecurePay Gateway" <${process.env.SMTP_USER || 'noreply@securepay.com'}>`,
+      to,
+      subject: `🎉 Your ${tierName} Card Has Been Approved! - SecurePay Gateway`,
+      html
+    });
+
+    console.log('📧 Card approval email sent:', info.messageId);
+    if (!process.env.SMTP_HOST) {
+      console.log('📧 Preview URL:', nodemailer.getTestMessageUrl(info));
+    }
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Card approval email error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send card block/delete notification email
+ */
+const sendCardActionEmail = async (options) => {
+  if (!transporter) {
+    await initializeTransporter();
+  }
+
+  const { to, userName, maskedCard, cardType, action, reason } = options;
+  const isBlocked = action === 'blocked';
+  const actionColor = isBlocked ? '#ff9800' : '#f44336';
+  const actionIcon = isBlocked ? '🚫' : '🗑️';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f4f4;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <tr>
+          <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px;">SecurePay Gateway</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Card ${isBlocked ? 'Blocked' : 'Deleted'} Notice</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: ${actionColor}; padding: 15px; text-align: center;">
+            <span style="color: #ffffff; font-size: 18px; font-weight: bold;">${actionIcon} Your Card Has Been ${isBlocked ? 'Blocked' : 'Deleted'}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 30px;">
+            <p style="color: #333; font-size: 16px;">Hello <strong>${userName}</strong>,</p>
+            <p style="color: #666; font-size: 14px; line-height: 1.6;">
+              Your credit card has been <strong style="color: ${actionColor};">${isBlocked ? 'blocked' : 'permanently deleted'}</strong> by the administrator.
+            </p>
+            <table width="100%" style="background-color: #f8f9fa; border-radius: 8px; margin: 20px 0;">
+              <tr><td style="padding: 20px;">
+                <p style="margin: 5px 0;"><span style="color: #666;">Card:</span> <strong style="font-family: monospace;">${maskedCard}</strong></p>
+                <p style="margin: 5px 0;"><span style="color: #666;">Type:</span> <strong>${(cardType || '').toUpperCase()}</strong></p>
+                <p style="margin: 5px 0;"><span style="color: #666;">Action:</span> <strong style="color: ${actionColor};">${isBlocked ? 'Blocked' : 'Permanently Deleted'}</strong></p>
+                ${reason ? '<p style="margin: 5px 0;"><span style="color: #666;">Reason:</span> ' + reason + '</p>' : ''}
+              </td></tr>
+            </table>
+            <p style="color: #666; font-size: 14px;">
+              ${isBlocked
+      ? 'Your card has been temporarily deactivated. Contact support if you believe this is an error.'
+      : 'Your card has been permanently removed. Any pending transactions will be cancelled.'}
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: #333; padding: 20px; text-align: center;">
+            <p style="color: #999; font-size: 12px; margin: 0;">SecurePay Gateway</p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>`;
+
+  try {
+    const info = await transporter.sendMail({
+      from: '"SecurePay Gateway" <' + (process.env.SMTP_USER || 'noreply@securepay.com') + '>',
+      to,
+      subject: actionIcon + ' Your Card Has Been ' + (isBlocked ? 'Blocked' : 'Deleted') + ' - SecurePay Gateway',
+      html
+    });
+    console.log('Card ' + action + ' email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Card ' + action + ' email error:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 module.exports = {
-    initializeTransporter,
-    sendPaymentConfirmation,
-    sendOTPEmail
+  initializeTransporter,
+  sendPaymentConfirmation,
+  sendOTPEmail,
+  sendCardApprovalEmail,
+  sendCardActionEmail
 };

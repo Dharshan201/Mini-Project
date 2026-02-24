@@ -49,6 +49,10 @@ const transactionSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    otpHash: {
+        type: String,
+        default: null
+    },
     otpExpiry: {
         type: Date,
         default: null

@@ -30,7 +30,10 @@ import {
     DarkMode,
     LightMode,
     Menu as MenuIcon,
-    AdminPanelSettings
+    AdminPanelSettings,
+    Speed,
+    CardMembership,
+    Info
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -39,6 +42,9 @@ import PaymentForm from './PaymentForm';
 import TransactionHistory from './TransactionHistory';
 import Charts from './Charts';
 import Profile from './Profile';
+import CreditScoreAnalyzer from './CreditScoreAnalyzer';
+import CreditCardApply from './CreditCardApply';
+import CardInfo from './CardInfo';
 
 const drawerWidth = 280;
 
@@ -46,6 +52,9 @@ const menuItems = [
     { text: 'Make Payment', icon: <Payment />, path: '' },
     { text: 'Transaction History', icon: <History />, path: 'history' },
     { text: 'Analytics', icon: <BarChart />, path: 'analytics' },
+    { text: 'Credit Score', icon: <Speed />, path: 'credit-score' },
+    { text: 'Apply for Card', icon: <CardMembership />, path: 'apply-card' },
+    { text: 'Card Info', icon: <Info />, path: 'card-info' },
     { text: 'Profile', icon: <Person />, path: 'profile' },
 ];
 
@@ -217,41 +226,6 @@ const Dashboard = () => {
                     );
                 })}
 
-                {/* Admin Panel Link */}
-                {user?.role === 'admin' && (
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
-                    >
-                        <ListItem disablePadding sx={{ mb: 1 }}>
-                            <ListItemButton
-                                onClick={() => navigate('/admin')}
-                                sx={{
-                                    borderRadius: 2,
-                                    background: 'rgba(255, 193, 7, 0.1)',
-                                    border: '1px solid rgba(255, 193, 7, 0.2)',
-                                    '&:hover': {
-                                        background: 'rgba(255, 193, 7, 0.15)'
-                                    }
-                                }}
-                            >
-                                <ListItemIcon sx={{ color: '#ffc107', minWidth: 40 }}>
-                                    <AdminPanelSettings />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Admin Panel"
-                                    sx={{
-                                        '& .MuiTypography-root': {
-                                            fontWeight: 600,
-                                            color: '#ffc107'
-                                        }
-                                    }}
-                                />
-                            </ListItemButton>
-                        </ListItem>
-                    </motion.div>
-                )}
             </List>
 
             <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
@@ -406,6 +380,9 @@ const Dashboard = () => {
                     <Route path="" element={<PaymentForm />} />
                     <Route path="history" element={<TransactionHistory />} />
                     <Route path="analytics" element={<Charts />} />
+                    <Route path="credit-score" element={<CreditScoreAnalyzer />} />
+                    <Route path="apply-card" element={<CreditCardApply />} />
+                    <Route path="card-info" element={<CardInfo />} />
                     <Route path="profile" element={<Profile />} />
                 </Routes>
             </Box>

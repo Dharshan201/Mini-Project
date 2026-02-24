@@ -40,6 +40,14 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   return children;
 };
 
+// Root redirect based on role
+const RootRedirect = () => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+};
+
 function AppContent() {
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
@@ -117,7 +125,7 @@ function AppContent() {
         <CssBaseline />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
