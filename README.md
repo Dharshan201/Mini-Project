@@ -276,7 +276,7 @@ This project is licensed under the MIT License.
 
 ## 👨‍💻 Author
 
-Built by DHARSHAN
+Built by ADITYA KSSD
 
 ---
 
